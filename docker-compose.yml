@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reshala
+      POSTGRES_PASSWORD: reshala
+      POSTGRES_DB: reshala
+    ports:
+      - "5432:5432"
+    volumes:
+      - reshala_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  reshala_postgres_data:

@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0b0b0f;
+  --color-foreground: #f5f5f7;
+  --color-muted: #9a9aa5;
+  --color-accent: #ff4d4f;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html {
+  background-color: light-dark(#f5f5f7, #0b0b0f);
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: light-dark(#f5f5f7, #0b0b0f);
+  color: light-dark(#0b0b0f, #f5f5f7);
+}
