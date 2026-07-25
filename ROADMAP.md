@@ -39,10 +39,22 @@
   `/poll`, `/ai-verdict`) с честным «в разработке», без полу-рабочих кнопок
 - Визуально проверено в браузере (light/dark, все роуты, hydration-варнинги устранены)
 
-## Этап 4 — Session domain — TODO
+## Этап 4 — Session domain — DONE
 
-- Полная Prisma-схема (Session, Participant, Option, Vote, Result…)
-- Session service, permissions, generic API `/api/v1/sessions`
+- Generic Prisma-схема: `Session` (enum `SessionType`/`SessionStatus`,
+  `publicId` для внешних ссылок), `SessionParticipant`, `Result`.
+  `Option`/`Vote` и `Company` сознательно отложены — появятся вместе с
+  режимами, которым реально нужны (Этапы 6, 8, 9), чтобы не тащить пустые
+  таблицы заранее
+- Чистая state machine (`canJoin`/`canStart`/`canClose`/`canEditBeforeStart`)
+  и права доступа (`canManageSession`) — отдельно от репозитория, покрыты
+  юнит-тестами без БД
+- Generic API: `POST /api/v1/sessions`, `GET /api/v1/sessions/:id` (без
+  авторизации — публичные результаты по ссылке), `POST /sessions/:id/join`
+  (идемпотентный, в транзакции), `POST /sessions/:id/start` (только автор)
+- Единый `withApiErrors` враппер для роутов вместо дублирования try/catch
+- vote/finalize/react/ai-verdict сознательно не реализованы — появятся в
+  соответствующих этапах (5, 9, 11, 13) вместе с самой механикой
 
 ## Этап 5 — «Кто сегодня?» — TODO
 
@@ -88,4 +100,4 @@
 
 ## Известные ограничения текущей среды
 
-- В песочнице нет локального Postgres/Docker — миграции (`prisma migrate dev`) всё ещё не прогонялись, только `prisma validate`/`generate`. Модель `User` добавлена в схему на Этапе 2, но реальный `upsert` в БД не проверялся живым запросом — только логика валидации initData/сессии (юнит-тесты + curl без БД). Поднимите `docker-compose.yml` и выполните `npm run db:migrate` перед реальным использованием auth-эндпоинтов.
+- В песочнице нет локального Postgres/Docker — миграции (`prisma migrate dev`) всё ещё не прогонялись, только `prisma validate`/`generate`. Модели `User`/`Session`/`SessionParticipant`/`Result` добавлены в схему (Этапы 2 и 4), но реальные запросы к БД не проверялись живьём — сервер честно возвращает 500 (`P1000 AuthenticationFailed`) при попытке подключиться к несуществующему Postgres, что подтверждает: код доходит до слоя БД корректно, дальше нужен реальный инстанс. Поднимите `docker-compose.yml` и выполните `npm run db:migrate` перед реальным использованием auth/session-эндпоинтов.

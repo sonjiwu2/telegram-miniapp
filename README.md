@@ -106,6 +106,22 @@ go run .
   `ALLOW_DEV_AUTH=true` (использует `DEV_TELEGRAM_USER_ID`), иначе `403 DEV_AUTH_DISABLED`.
 - Формат ошибок единый: `{ "error": { "code": "...", "message": "..." } }`.
 
+## Sessions API (Этап 4)
+
+Generic-движок сессий, на котором строятся все режимы (рулетка, голосования,
+споры и т.д. — Этапы 5+).
+
+- `POST /api/v1/sessions` — создать сессию (`{ type, title, settings? }`,
+  `type` ∈ `ROULETTE | RANDOM_CHOICE | DEBATE | POLL | AI_VERDICT`). Требует авторизации.
+- `GET /api/v1/sessions/:id` — сессия по `publicId`. Без авторизации — результаты
+  доступны по ссылке любому, у кого она есть.
+- `POST /api/v1/sessions/:id/join` — присоединиться участником. Идемпотентно
+  (повторный вызов не создаёт дубликат), нельзя после `CLOSED`/`RESOLVED`/`CANCELLED`.
+- `POST /api/v1/sessions/:id/start` — перевести `DRAFT → OPEN`. Только автор сессии.
+
+Голосование, финализация с результатом, реакции и AI-вердикт — часть
+конкретных режимов и появятся вместе с ними (Этапы 5, 9, 11, 13).
+
 ## Безопасность
 
 - Telegram `initData` валидируется только на сервере (HMAC-SHA256 по

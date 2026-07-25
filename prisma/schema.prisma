@@ -7,7 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// Session domain (Company, Session, Vote, ...) появится на Этапе 4.
 model User {
   id           String   @id @default(cuid())
   telegramId   BigInt   @unique
@@ -19,5 +18,83 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  createdSessions Session[]            @relation("SessionCreator")
+  participations  SessionParticipant[]
+
   @@index([username])
+}
+
+// Company/CompanyMember появятся на Этапе 8.
+// Option/Vote (для "Нам похуй" и голосований) появятся на Этапах 6 и 9.
+
+enum SessionType {
+  ROULETTE
+  RANDOM_CHOICE
+  DEBATE
+  POLL
+  AI_VERDICT
+}
+
+enum SessionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  RESOLVED
+  CANCELLED
+}
+
+model Session {
+  id        String        @id @default(cuid())
+  publicId  String        @unique @default(cuid())
+  type      SessionType
+  status    SessionStatus @default(DRAFT)
+  title     String
+  settings  Json          @default("{}")
+
+  creatorId String
+  creator   User   @relation("SessionCreator", fields: [creatorId], references: [id])
+
+  // companyId появится на Этапе 8.
+
+  participants SessionParticipant[]
+  result       Result?
+
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  closedAt  DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+model SessionParticipant {
+  id          String  @id @default(cuid())
+  sessionId   String
+  session     Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // null — участник добавлен вручную, без Telegram-аккаунта.
+  userId      String?
+  user        User?   @relation(fields: [userId], references: [id])
+  displayName String
+
+  joinedAt DateTime @default(now())
+
+  wonResults Result[] @relation("ResultWinner")
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+}
+
+model Result {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  winnerParticipantId String?
+  winnerParticipant   SessionParticipant? @relation("ResultWinner", fields: [winnerParticipantId], references: [id])
+
+  // Динамические данные конкретного режима (например, полный текст AI-вердикта).
+  payload Json @default("{}")
+
+  createdAt DateTime @default(now())
 }
