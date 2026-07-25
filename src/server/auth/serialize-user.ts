@@ -1,12 +1,5 @@
 import type { User } from "@/generated/prisma/client";
-
-export interface PublicUser {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  username: string | null;
-  photoUrl: string | null;
-}
+import type { PublicUser } from "@/lib/types/user";
 
 export function serializeUser(user: User): PublicUser {
   return {

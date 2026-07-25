@@ -24,11 +24,20 @@
 - DEV auth bypass (`{"dev": true}`, работает только при `ALLOW_DEV_AUTH=true`, физически запрещён в production через `env.ts`)
 - Security-тесты: подпись initData (валидная/поддельная/просроченная/подменённые поля/отсутствующий hash), сессия (валидная/подменённая/просроченная/битый формат)
 
-## Этап 3 — Core UI — TODO
+## Этап 3 — Core UI — DONE
 
-- Главный экран, bottom navigation, профиль
-- Синхронизация с Telegram theme params
-- Loading/empty/error состояния
+- Главный экран (лого, кнопка «ЗАПУСТИТЬ», сетка из 6 режимов), bottom navigation
+  (Главная/История/Компания/Профиль)
+- Профиль по-настоящему подключён к auth из Этапа 2 (`SessionProvider`,
+  состояния loading/authenticated/unauthenticated/error)
+- Тема: пофикшен баг с нечувствительными к теме CSS-переменными
+  (`--color-background/foreground/muted` теперь через `light-dark()`),
+  `suppressHydrationWarning` на `<html>` из-за inline-стилей вьюпорта от
+  `telegram-web-app.js`
+- Loading (skeleton), empty-state и error состояния; `prefers-reduced-motion`
+- Страницы-заглушки для режимов (`/who-today`, `/random-pick`, `/debate`,
+  `/poll`, `/ai-verdict`) с честным «в разработке», без полу-рабочих кнопок
+- Визуально проверено в браузере (light/dark, все роуты, hydration-варнинги устранены)
 
 ## Этап 4 — Session domain — TODO
 
