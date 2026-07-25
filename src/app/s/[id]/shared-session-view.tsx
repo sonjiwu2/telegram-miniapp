@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiClient, ApiRequestError } from "@/lib/api-client";
 import { getWinnerLabel } from "@/lib/sessions/get-winner-label";
 import { SessionResultSummary } from "@/components/sessions/session-result-summary";
+import { PollView } from "@/components/sessions/poll-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PublicSession } from "@/lib/types/session";
@@ -69,11 +70,21 @@ export function SharedSessionView({ id }: { id: string }) {
     );
   }
 
-  const winnerLabel = getWinnerLabel(state.session);
+  const { session } = state;
+
+  if (session.type === "POLL") {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center">
+        <PollView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
+      </main>
+    );
+  }
+
+  const winnerLabel = getWinnerLabel(session);
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      <SessionResultSummary title={state.session.title} status={state.session.status} winnerLabel={winnerLabel} />
+      <SessionResultSummary title={session.title} status={session.status} winnerLabel={winnerLabel} />
       <Link href="/" className="bg-accent min-h-12 rounded-xl px-6 py-3 text-base font-semibold text-white">
         Создать своё решение
       </Link>

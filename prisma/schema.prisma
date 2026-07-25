@@ -22,6 +22,7 @@ model User {
   participations  SessionParticipant[]
   ownedCompanies  Company[]            @relation("CompanyOwner")
   companyMembers  CompanyMember[]
+  votes           Vote[]
 
   @@index([username])
 }
@@ -64,7 +65,25 @@ model CompanyMember {
   @@index([userId])
 }
 
-// Vote (для голосований) появится на Этапе 9.
+// Один голос на пользователя за сессию — обеспечивается @@unique.
+// Кто за что проголосовал наружу не отдаётся (анонимность), наружу уходят
+// только агрегированные счётчики в Result.payload после финализации.
+model Vote {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    Option  @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([optionId])
+}
 
 enum SessionType {
   ROULETTE
@@ -98,6 +117,7 @@ model Session {
 
   participants SessionParticipant[]
   options      Option[]
+  votes        Vote[]
   result       Result?
 
   createdAt DateTime  @default(now())
@@ -137,6 +157,7 @@ model Option {
   createdAt DateTime @default(now())
 
   wonResults Result[] @relation("ResultWinnerOption")
+  votes      Vote[]
 
   @@index([sessionId])
 }

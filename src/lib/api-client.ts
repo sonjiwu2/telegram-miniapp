@@ -64,6 +64,11 @@ export const apiClient = {
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
     finalize: (id: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/finalize`, { method: "POST" }),
+    vote: (id: string, optionId: string) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ optionId }),
+      }),
   },
   companies: {
     list: () => request<{ companies: PublicCompany[] }>("/api/v1/companies"),

@@ -5,6 +5,7 @@ import { canEditBeforeStart, canJoin, canStart } from "./state-machine";
 import { canManageSession } from "./permissions";
 import { resolveRoulette } from "./resolvers/roulette";
 import { resolveRandomChoice } from "./resolvers/random-choice";
+import { resolvePoll } from "./resolvers/poll";
 import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
@@ -162,13 +163,48 @@ export function addOptions(publicId: string, userId: string, labels: string[]) {
   });
 }
 
+// Один голос на пользователя (раздел 9 ТЗ): повторный вызов с другим optionId
+// меняет голос (upsert), а не создаёт дубликат — это и есть allowVoteChange
+// по умолчанию для MVP. Кто за что голосовал — наружу не отдаётся нигде.
+export function castVote(publicId: string, userId: string, optionId: string) {
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.session.findUnique({ where: { publicId }, include: { options: true } });
+    if (!session) {
+      throw new ApiError(404, "SESSION_NOT_FOUND", "Session not found");
+    }
+
+    if (session.type !== "POLL") {
+      throw new ApiError(409, "WRONG_SESSION_TYPE", "Voting is only available for POLL sessions");
+    }
+
+    if (session.status !== "OPEN") {
+      throw new ApiError(409, "SESSION_NOT_OPEN", `Cannot vote in a session with status ${session.status}`);
+    }
+
+    if (!session.options.some((option) => option.id === optionId)) {
+      throw new ApiError(400, "INVALID_OPTION", "This option does not belong to the session");
+    }
+
+    await tx.vote.upsert({
+      where: { sessionId_userId: { sessionId: session.id, userId } },
+      create: { sessionId: session.id, optionId, userId },
+      update: { optionId },
+    });
+
+    return tx.session.findUniqueOrThrow({
+      where: { id: session.id },
+      include: sessionWithRelations,
+    });
+  });
+}
+
 type SessionForFinalize = Prisma.SessionGetPayload<{ include: typeof sessionWithRelations }>;
 
 interface Resolution {
   candidateCount: number;
   notEnoughCode: string;
   notEnoughMessage: string;
-  resolve: () => ResolvedResult;
+  resolve: () => ResolvedResult | Promise<ResolvedResult>;
 }
 
 const RESOLUTIONS: Partial<Record<SessionType, (session: SessionForFinalize) => Resolution>> = {
@@ -183,6 +219,12 @@ const RESOLUTIONS: Partial<Record<SessionType, (session: SessionForFinalize) => 
     notEnoughCode: "NOT_ENOUGH_OPTIONS",
     notEnoughMessage: "Need at least 2 options to finalize",
     resolve: () => resolveRandomChoice(session.options),
+  }),
+  POLL: (session) => ({
+    candidateCount: session.options.length,
+    notEnoughCode: "NOT_ENOUGH_OPTIONS",
+    notEnoughMessage: "Need at least 2 options to finalize",
+    resolve: () => resolvePoll(session.id, session.options),
   }),
 };
 
@@ -217,7 +259,7 @@ export async function finalizeSession(publicId: string, userId: string) {
     throw new ApiError(409, resolution.notEnoughCode, resolution.notEnoughMessage);
   }
 
-  const resolved = resolution.resolve();
+  const resolved = await resolution.resolve();
 
   try {
     await prisma.result.create({
