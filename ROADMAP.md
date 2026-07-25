@@ -93,9 +93,29 @@
   запись в БД уже есть (Result сохраняется), полноценный список с фильтрами
   появится на Этапе 10
 
-## Этап 7 — Sharing — TODO
+## Этап 7 — Sharing — DONE
 
-- publicId, startapp deep links, share-кнопки, browser result page
+- `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` — теперь обязателен (не секрет, нужен
+  на клиенте для startapp deep link)
+- `buildMiniAppLink`/`buildTelegramShareLink` (`src/lib/telegram/deep-link.ts`) —
+  `t.me/<bot>?startapp=<publicId>` (по офиц. документации Telegram Direct Links,
+  publicId=cuid укладывается в допустимые `A-Za-z0-9_-`, ≤64 символа)
+- `/r/[id]` — публичная browser-страница результата (своя, без bottom nav —
+  `AppShell` скрывает чром по префиксу `/r/`), OG-теги + `robots: noindex`
+  (раздел 54 ТЗ — приватные результаты не индексируются)
+- `/api/og/result/[id]` — реальное сгенерированное OG-изображение
+  (`next/og` `ImageResponse`, не заглушка) — это и есть «Telegram result card»
+  из раздела 15: Telegram сам подтягивает og:image в превью ссылки
+- `/s/[id]` — внутриигровой просмотр чужой сессии по ссылке (для тех, кто уже
+  в Mini App), с CTA «Создать своё решение» — усиливает виральный цикл
+- `TelegramInit` слушает `initDataUnsafe.start_param` и редиректит на `/s/[id]`
+  при открытии по deep link (используется только для роутинга, не для auth —
+  auth по-прежнему только через подпись `initData`)
+- `ShareActions` в результатах «Кто сегодня?»/«Нам похуй»: `openTelegramLink`
+  внутри Telegram, `navigator.share`/copy-to-clipboard вне его
+- Живая проверка в браузере/curl в этот раз не делалась (пропущено по ходу
+  сессии) — код прошёл typecheck/lint/tests/build, но deep link end-to-end
+  внутри реального Telegram не перепроверялся после Этапа 1
 
 ## Этап 8 — Компании — TODO
 

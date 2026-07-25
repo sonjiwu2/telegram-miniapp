@@ -9,6 +9,7 @@ export default defineConfig({
       DATABASE_URL: "postgresql://user:pass@localhost:5432/reshala_test",
       NEXT_PUBLIC_APP_URL: "https://reshala.test",
       TELEGRAM_BOT_TOKEN: "123456:test-bot-token-for-tests",
+      NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: "reshala_test_bot",
       SESSION_SECRET: "test-session-secret-0123456789-0123456789",
     },
   },

@@ -33,7 +33,7 @@ cp .env.example .env
 | `DATABASE_URL` | да | Строка подключения к PostgreSQL |
 | `NEXT_PUBLIC_APP_URL` | да | Публичный URL приложения (share-ссылки, deep links) |
 | `TELEGRAM_BOT_TOKEN` | да | Токен Telegram-бота, используется для валидации initData |
-| `TELEGRAM_BOT_USERNAME` | нет | Username бота (для deep links) |
+| `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | да | Username бота без `@` — для startapp deep links, не секрет |
 | `SESSION_SECRET` | да | Секрет для подписи сессионной cookie, ≥32 символов |
 | `ALLOW_DEV_AUTH` | нет | `true` включает dev-обход авторизации. Физически запрещён при `NODE_ENV=production` |
 | `DEV_TELEGRAM_USER_ID` | нет | Telegram ID, который подставляется при dev-обходе |
@@ -142,6 +142,21 @@ Generic-движок сессий, на котором строятся все �
 - `/random-pick` — список вариантов (не людей) → `РЕШАЙ`. `Повторить» —
   новый раунд с тем же списком, «Убрать «X» и повторить» — реролл без
   победившего варианта, «Новый список» — полный сброс.
+
+## Sharing (Этап 7)
+
+- `/r/[id]` — публичная страница результата для браузера вне Telegram
+  (без нижней навигации, свои OG-теги, `robots: noindex`, кнопка «Открыть
+  в Telegram»).
+- `/api/og/result/[id]` — сгенерированное превью-изображение для ссылки
+  (`next/og`), Telegram сам подтягивает его в предпросмотр при вставке ссылки.
+- `/s/[id]` — просмотр чужой сессии внутри уже открытого Mini App (когда
+  пользователь переходит по `t.me/<bot>?startapp=<publicId>` — Telegram
+  кладёт `publicId` в `initDataUnsafe.start_param`, `TelegramInit` сам
+  редиректит на `/s/[id]`).
+- Кнопка «Отправить в Telegram» на экранах результата: внутри Telegram —
+  `openTelegramLink` на `t.me/share/url`, вне его — `navigator.share` с
+  фолбэком на копирование ссылки.
 
 ## Безопасность
 

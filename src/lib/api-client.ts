@@ -48,6 +48,7 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(input),
       }),
+    get: (id: string) => request<{ session: PublicSession }>(`/api/v1/sessions/${id}`),
     addParticipants: (id: string, displayNames: string[]) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/participants`, {
         method: "POST",

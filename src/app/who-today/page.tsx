@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "@/components/providers/session-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ShareActions } from "@/components/sessions/share-actions";
 import { apiClient, ApiRequestError } from "@/lib/api-client";
 import { VERDICT_LINES, WHO_TODAY_TEMPLATES } from "@/config/who-today-templates";
 import type { PublicSessionParticipant } from "@/lib/types/session";
@@ -26,6 +27,7 @@ export default function WhoTodayPage() {
   const [displayName, setDisplayName] = useState("");
   const [winnerName, setWinnerName] = useState("");
   const [verdictLine, setVerdictLine] = useState("");
+  const [sessionId, setSessionId] = useState("");
 
   const spinTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -107,6 +109,7 @@ export default function WhoTodayPage() {
 
       setWinnerName(winner?.displayName ?? "Неизвестно");
       setVerdictLine(pickVerdictLine());
+      setSessionId(finalized.id);
       setPhase("spinning");
       runSpinAnimation(finalized.participants, winner?.displayName ?? "Неизвестно");
     } catch (err) {
@@ -144,6 +147,7 @@ export default function WhoTodayPage() {
         <p className="text-accent text-sm font-medium">«{verdictLine}»</p>
 
         <div className="mt-6 flex w-full max-w-xs flex-col gap-3">
+          <ShareActions sessionId={sessionId} shareText={`RESHALA решил: ${winnerName}. ${question}`} />
           <button
             type="button"
             onClick={handleSpin}

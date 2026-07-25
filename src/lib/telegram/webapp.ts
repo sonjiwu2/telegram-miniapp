@@ -14,12 +14,20 @@ export interface TelegramThemeParams {
   secondary_bg_color?: string;
 }
 
+export interface TelegramWebAppInitDataUnsafe {
+  start_param?: string;
+}
+
 export interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   colorScheme: TelegramColorScheme;
   themeParams: TelegramThemeParams;
   initData: string;
+  initDataUnsafe: TelegramWebAppInitDataUnsafe;
+  // Открывает t.me-ссылку внутри Telegram, Mini App при этом не закрывается
+  // (начиная с Bot API 7.0). Используется для share-ссылок.
+  openTelegramLink: (url: string) => void;
   onEvent: (eventType: "themeChanged", callback: () => void) => void;
   offEvent: (eventType: "themeChanged", callback: () => void) => void;
 }

@@ -5,6 +5,7 @@ const baseEnv = {
   DATABASE_URL: "postgresql://user:pass@localhost:5432/reshala",
   NEXT_PUBLIC_APP_URL: "https://reshala.app",
   TELEGRAM_BOT_TOKEN: "123456:test-bot-token",
+  NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: "reshala_test_bot",
   SESSION_SECRET: "a".repeat(32),
 };
 
@@ -36,6 +37,13 @@ describe("parseEnv", () => {
   it("rejects a missing TELEGRAM_BOT_TOKEN", () => {
     const { TELEGRAM_BOT_TOKEN, ...rest } = baseEnv;
     void TELEGRAM_BOT_TOKEN;
+
+    expect(() => parseEnv(rest)).toThrow();
+  });
+
+  it("rejects a missing NEXT_PUBLIC_TELEGRAM_BOT_USERNAME", () => {
+    const { NEXT_PUBLIC_TELEGRAM_BOT_USERNAME, ...rest } = baseEnv;
+    void NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
     expect(() => parseEnv(rest)).toThrow();
   });

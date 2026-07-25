@@ -9,7 +9,9 @@ const envSchema = z
 
     // Telegram auth (Этап 2).
     TELEGRAM_BOT_TOKEN: z.string().min(1),
-    TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
+    // Публичный, не секрет (виден в URL бота). NEXT_PUBLIC_, потому что нужен
+    // на клиенте для построения startapp deep link (Этап 7).
+    NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: z.string().min(1),
     SESSION_SECRET: z.string().min(32, "SESSION_SECRET должен быть не короче 32 символов"),
     ALLOW_DEV_AUTH: z
       .enum(["true", "false"])
