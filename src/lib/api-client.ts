@@ -1,6 +1,7 @@
 import type { PublicUser } from "@/lib/types/user";
 import type { PublicSession } from "@/lib/types/session";
 import type { PublicCompany } from "@/lib/types/company";
+import type { UserStats } from "@/lib/types/stats";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -84,5 +85,17 @@ export const apiClient = {
       request<{ company: PublicCompany }>(`/api/v1/companies/${id}/members/${userId}`, {
         method: "DELETE",
       }),
+  },
+  history: {
+    list: (filter: { type?: string; mine?: boolean } = {}) => {
+      const params = new URLSearchParams();
+      if (filter.type) params.set("type", filter.type);
+      if (filter.mine) params.set("mine", "true");
+      const query = params.toString();
+      return request<{ sessions: PublicSession[] }>(`/api/v1/history${query ? `?${query}` : ""}`);
+    },
+  },
+  stats: {
+    get: () => request<{ stats: UserStats }>("/api/v1/stats"),
   },
 };

@@ -9,7 +9,7 @@ import { resolvePoll } from "./resolvers/poll";
 import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
-const sessionWithRelations = { participants: true, options: true, result: true } as const;
+export const sessionWithRelations = { participants: true, options: true, result: true } as const;
 
 export interface CreateSessionInput {
   type: SessionType;

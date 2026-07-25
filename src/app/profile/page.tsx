@@ -1,11 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/session-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { apiClient } from "@/lib/api-client";
+import type { UserStats } from "@/lib/types/stats";
 
 export default function ProfilePage() {
   const { status, user, error } = useAuth();
+  const [stats, setStats] = useState<UserStats | null>(null);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    let cancelled = false;
+    apiClient.stats
+      .get()
+      .then(({ stats: loaded }) => {
+        if (!cancelled) {
+          setStats(loaded);
+        }
+      })
+      .catch(() => {
+        // Статистика необязательна для отображения профиля — молча игнорируем.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
   return (
     <main className="flex flex-1 flex-col p-6">
@@ -37,6 +63,23 @@ export default function ProfilePage() {
             {user.firstName} {user.lastName ?? ""}
           </p>
           {user.username && <p className="text-muted text-sm">@{user.username}</p>}
+
+          {stats && (
+            <div className="mt-6 grid w-full max-w-xs grid-cols-3 gap-2 text-center">
+              <div className="border-border bg-surface rounded-xl border p-3">
+                <p className="text-xl font-bold">{stats.sessionsParticipated}</p>
+                <p className="text-muted text-xs">Решений</p>
+              </div>
+              <div className="border-border bg-surface rounded-xl border p-3">
+                <p className="text-xl font-bold">{stats.sessionsCreated}</p>
+                <p className="text-muted text-xs">Создано</p>
+              </div>
+              <div className="border-border bg-surface rounded-xl border p-3">
+                <p className="text-xl font-bold">{stats.rouletteWins}</p>
+                <p className="text-muted text-xs">Побед в рулетке</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
