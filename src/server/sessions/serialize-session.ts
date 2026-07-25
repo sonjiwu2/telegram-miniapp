@@ -1,10 +1,12 @@
-import type { Session, SessionParticipant, Option, Result } from "@/generated/prisma/client";
+import type { Session, SessionParticipant, Option, Result, Reaction } from "@/generated/prisma/client";
 import type { PublicSession } from "@/lib/types/session";
+import { REACTION_EMOJIS } from "@/lib/sessions/reactions";
 
 type SessionWithRelations = Session & {
   participants: SessionParticipant[];
   options: Option[];
   result: Result | null;
+  reactions: Reaction[];
 };
 
 // "id" наружу — это всегда publicId. Внутренний cuid (Session.id) на клиент не уходит.
@@ -34,6 +36,10 @@ export function serializeSession(session: SessionWithRelations): PublicSession {
           createdAt: session.result.createdAt.toISOString(),
         }
       : null,
+    reactions: REACTION_EMOJIS.map((emoji) => ({
+      emoji,
+      count: session.reactions.filter((reaction) => reaction.emoji === emoji).length,
+    })),
     createdAt: session.createdAt.toISOString(),
     startedAt: session.startedAt ? session.startedAt.toISOString() : null,
     closedAt: session.closedAt ? session.closedAt.toISOString() : null,

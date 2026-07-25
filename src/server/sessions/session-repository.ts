@@ -10,10 +10,16 @@ import { resolveAiVerdict } from "./resolvers/ai-verdict";
 import { resolveDebateVote, resolveDebateJudge } from "./resolvers/debate";
 import { isAiTone, DEFAULT_AI_TONE } from "@/lib/ai/tones";
 import { readDebateSettings, computeDebateClosesAt } from "@/lib/sessions/debate-settings";
+import { isReactionEmoji } from "@/lib/sessions/reactions";
 import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
-export const sessionWithRelations = { participants: true, options: true, result: true } as const;
+export const sessionWithRelations = {
+  participants: true,
+  options: true,
+  result: true,
+  reactions: true,
+} as const;
 
 export interface CreateSessionInput {
   type: SessionType;
@@ -215,6 +221,36 @@ export function castVote(publicId: string, userId: string, optionId: string) {
       where: { sessionId_userId: { sessionId: session.id, userId } },
       create: { sessionId: session.id, optionId, userId },
       update: { optionId },
+    });
+
+    return tx.session.findUniqueOrThrow({
+      where: { id: session.id },
+      include: sessionWithRelations,
+    });
+  });
+}
+
+// Раздел 28 ТЗ: одна активная реакция на пользователя, её можно менять
+// (upsert). Доступно на любой уже решённой сессии — не только создателю.
+export function castReaction(publicId: string, userId: string, emoji: string) {
+  return prisma.$transaction(async (tx) => {
+    if (!isReactionEmoji(emoji)) {
+      throw new ApiError(400, "INVALID_REACTION", "This emoji is not a supported reaction");
+    }
+
+    const session = await tx.session.findUnique({ where: { publicId } });
+    if (!session) {
+      throw new ApiError(404, "SESSION_NOT_FOUND", "Session not found");
+    }
+
+    if (session.status !== "RESOLVED") {
+      throw new ApiError(409, "SESSION_NOT_RESOLVED", "Reactions are only available on a resolved session");
+    }
+
+    await tx.reaction.upsert({
+      where: { sessionId_userId: { sessionId: session.id, userId } },
+      create: { sessionId: session.id, userId, emoji },
+      update: { emoji },
     });
 
     return tx.session.findUniqueOrThrow({

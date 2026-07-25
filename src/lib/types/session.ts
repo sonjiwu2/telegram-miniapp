@@ -10,6 +10,11 @@ export interface PublicSessionOption {
   argument: string | null;
 }
 
+export interface PublicReactionCount {
+  emoji: string;
+  count: number;
+}
+
 export interface PublicResult {
   winnerParticipantId: string | null;
   winnerOptionId: string | null;
@@ -27,6 +32,7 @@ export interface PublicSession {
   participants: PublicSessionParticipant[];
   options: PublicSessionOption[];
   result: PublicResult | null;
+  reactions: PublicReactionCount[];
   createdAt: string;
   startedAt: string | null;
   closedAt: string | null;

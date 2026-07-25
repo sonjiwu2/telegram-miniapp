@@ -6,10 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { apiClient } from "@/lib/api-client";
 import type { UserStats } from "@/lib/types/stats";
+import type { Achievement } from "@/lib/achievements/evaluate";
 
 export default function ProfilePage() {
   const { status, user, error } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[] | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -17,16 +19,28 @@ export default function ProfilePage() {
     }
 
     let cancelled = false;
-    apiClient.stats
-      .get()
-      .then(({ stats: loaded }) => {
+
+    async function load() {
+      try {
+        const { stats: loaded } = await apiClient.stats.get();
         if (!cancelled) {
           setStats(loaded);
         }
-      })
-      .catch(() => {
+      } catch {
         // Статистика необязательна для отображения профиля — молча игнорируем.
-      });
+      }
+
+      try {
+        const { achievements: loaded } = await apiClient.achievements.get();
+        if (!cancelled) {
+          setAchievements(loaded);
+        }
+      } catch {
+        // Титулы необязательны для отображения профиля — молча игнорируем.
+      }
+    }
+
+    void load();
 
     return () => {
       cancelled = true;
@@ -78,6 +92,25 @@ export default function ProfilePage() {
                 <p className="text-xl font-bold">{stats.rouletteWins}</p>
                 <p className="text-muted text-xs">Побед в рулетке</p>
               </div>
+            </div>
+          )}
+
+          {achievements && (
+            <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
+              <p className="text-muted text-xs tracking-wide uppercase">Достижения</p>
+              <ul className="flex flex-col gap-2">
+                {achievements.map((achievement) => (
+                  <li
+                    key={achievement.code}
+                    className={`rounded-xl border p-3 text-left ${
+                      achievement.unlocked ? "border-accent" : "border-border opacity-40"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{achievement.title}</p>
+                    <p className="text-muted text-xs">{achievement.description}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

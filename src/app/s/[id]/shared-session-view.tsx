@@ -9,6 +9,7 @@ import { SessionResultSummary } from "@/components/sessions/session-result-summa
 import { VerdictSummary } from "@/components/ai/verdict-summary";
 import { PollView } from "@/components/sessions/poll-view";
 import { DebateView } from "@/components/sessions/debate-view";
+import { ReactionBar } from "@/components/sessions/reaction-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PublicSession } from "@/lib/types/session";
@@ -74,11 +75,14 @@ export function SharedSessionView({ id }: { id: string }) {
   }
 
   const { session } = state;
+  const onUpdate = (updated: PublicSession) => setState({ status: "loaded", session: updated });
+  const resolved = session.status === "RESOLVED";
 
   if (session.type === "POLL") {
     return (
       <main className="flex flex-1 flex-col items-center justify-center">
-        <PollView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
+        <PollView session={session} onUpdate={onUpdate} />
+        {resolved && <ReactionBar session={session} onUpdate={onUpdate} />}
       </main>
     );
   }
@@ -86,7 +90,8 @@ export function SharedSessionView({ id }: { id: string }) {
   if (session.type === "DEBATE") {
     return (
       <main className="flex flex-1 flex-col items-center justify-center">
-        <DebateView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
+        <DebateView session={session} onUpdate={onUpdate} />
+        {resolved && <ReactionBar session={session} onUpdate={onUpdate} />}
       </main>
     );
   }
@@ -95,6 +100,7 @@ export function SharedSessionView({ id }: { id: string }) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
         <VerdictSummary title={session.title} verdict={getVerdict(session)} />
+        {resolved && <ReactionBar session={session} onUpdate={onUpdate} />}
         <Link href="/" className="bg-accent min-h-12 rounded-xl px-6 py-3 text-base font-semibold text-white">
           Создать своё решение
         </Link>
@@ -107,6 +113,7 @@ export function SharedSessionView({ id }: { id: string }) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
       <SessionResultSummary title={session.title} status={session.status} winnerLabel={winnerLabel} />
+      {resolved && <ReactionBar session={session} onUpdate={onUpdate} />}
       <Link href="/" className="bg-accent min-h-12 rounded-xl px-6 py-3 text-base font-semibold text-white">
         Создать своё решение
       </Link>

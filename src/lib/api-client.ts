@@ -2,6 +2,7 @@ import type { PublicUser } from "@/lib/types/user";
 import type { PublicSession } from "@/lib/types/session";
 import type { PublicCompany } from "@/lib/types/company";
 import type { UserStats } from "@/lib/types/stats";
+import type { Achievement } from "@/lib/achievements/evaluate";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -95,6 +96,11 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({ optionId }),
       }),
+    react: (id: string, emoji: string) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      }),
   },
   companies: {
     list: () => request<{ companies: PublicCompany[] }>("/api/v1/companies"),
@@ -122,5 +128,8 @@ export const apiClient = {
   },
   stats: {
     get: () => request<{ stats: UserStats }>("/api/v1/stats"),
+  },
+  achievements: {
+    get: () => request<{ achievements: Achievement[] }>("/api/v1/achievements"),
   },
 };

@@ -24,6 +24,7 @@ model User {
   companyMembers  CompanyMember[]
   votes           Vote[]
   aiRequests      AIRequest[]
+  reactions       Reaction[]
 
   @@index([username])
 }
@@ -120,6 +121,7 @@ model Session {
   options      Option[]
   votes        Vote[]
   result       Result?
+  reactions    Reaction[]
 
   createdAt DateTime  @default(now())
   startedAt DateTime?
@@ -203,4 +205,23 @@ model AIRequest {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// Реакция на результат сессии (раздел 28 ТЗ) — один пользователь = одна
+// активная реакция на сессию, её можно поменять (@@unique + upsert).
+// emoji — обычная строка (валидируется на уровне API), не Prisma-enum,
+// т.к. emoji-символы не являются валидными идентификаторами enum.
+model Reaction {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  emoji     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
 }

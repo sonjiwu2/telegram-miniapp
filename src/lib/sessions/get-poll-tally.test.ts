@@ -16,6 +16,7 @@ function baseSession(overrides: Partial<PublicSession> = {}): PublicSession {
       { id: "b", label: "Ужасы", argument: null },
     ],
     result: null,
+    reactions: [],
     createdAt: new Date().toISOString(),
     startedAt: null,
     closedAt: null,

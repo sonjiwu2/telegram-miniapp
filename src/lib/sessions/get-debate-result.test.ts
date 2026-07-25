@@ -13,6 +13,7 @@ function baseSession(overrides: Partial<PublicSession>): PublicSession {
     participants: [],
     options: [],
     result: null,
+    reactions: [],
     createdAt: new Date().toISOString(),
     startedAt: null,
     closedAt: null,
