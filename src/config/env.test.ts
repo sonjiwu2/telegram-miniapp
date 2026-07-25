@@ -4,6 +4,8 @@ import { parseEnv } from "./env";
 const baseEnv = {
   DATABASE_URL: "postgresql://user:pass@localhost:5432/reshala",
   NEXT_PUBLIC_APP_URL: "https://reshala.app",
+  TELEGRAM_BOT_TOKEN: "123456:test-bot-token",
+  SESSION_SECRET: "a".repeat(32),
 };
 
 describe("parseEnv", () => {
@@ -17,15 +19,25 @@ describe("parseEnv", () => {
   });
 
   it("rejects a missing DATABASE_URL", () => {
-    const rest = { NEXT_PUBLIC_APP_URL: baseEnv.NEXT_PUBLIC_APP_URL };
+    const { DATABASE_URL, ...rest } = baseEnv;
+    void DATABASE_URL;
 
     expect(() => parseEnv(rest)).toThrow();
   });
 
   it("rejects a non-url DATABASE_URL", () => {
-    expect(() =>
-      parseEnv({ ...baseEnv, DATABASE_URL: "not-a-url" }),
-    ).toThrow();
+    expect(() => parseEnv({ ...baseEnv, DATABASE_URL: "not-a-url" })).toThrow();
+  });
+
+  it("rejects a SESSION_SECRET shorter than 32 characters", () => {
+    expect(() => parseEnv({ ...baseEnv, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
+  });
+
+  it("rejects a missing TELEGRAM_BOT_TOKEN", () => {
+    const { TELEGRAM_BOT_TOKEN, ...rest } = baseEnv;
+    void TELEGRAM_BOT_TOKEN;
+
+    expect(() => parseEnv(rest)).toThrow();
   });
 
   it("forbids ALLOW_DEV_AUTH=true in production", () => {
@@ -34,15 +46,26 @@ describe("parseEnv", () => {
         ...baseEnv,
         NODE_ENV: "production",
         ALLOW_DEV_AUTH: "true",
+        DEV_TELEGRAM_USER_ID: "1",
       }),
     ).toThrow(/ALLOW_DEV_AUTH/);
   });
 
-  it("allows ALLOW_DEV_AUTH=true outside production", () => {
+  it("requires DEV_TELEGRAM_USER_ID when ALLOW_DEV_AUTH=true", () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        ALLOW_DEV_AUTH: "true",
+      }),
+    ).toThrow(/DEV_TELEGRAM_USER_ID/);
+  });
+
+  it("allows ALLOW_DEV_AUTH=true outside production with a dev user id", () => {
     const env = parseEnv({
       ...baseEnv,
       NODE_ENV: "development",
       ALLOW_DEV_AUTH: "true",
+      DEV_TELEGRAM_USER_ID: "123",
     });
 
     expect(env.ALLOW_DEV_AUTH).toBe(true);

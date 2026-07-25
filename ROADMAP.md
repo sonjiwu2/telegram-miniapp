@@ -16,13 +16,13 @@
 - Dev-режим (`npm run dev`)
 - lint/typecheck/test/build
 
-## Этап 2 — Telegram auth — TODO
+## Этап 2 — Telegram auth — DONE
 
-- Валидация Telegram initData (HMAC) на сервере
-- Модель `User`, создание/обновление по Telegram ID
-- Auth-слой (сессия), `/api/v1/me`
-- DEV auth bypass (только вне production)
-- Security-тесты (валидная/просроченная/поддельная подпись)
+- Валидация Telegram initData (HMAC-SHA256 по официальному алгоритму) на сервере
+- Модель `User` в Prisma, upsert по Telegram ID
+- Auth-слой: подписанная httpOnly-сессия (свой HMAC-формат, без внешних JWT-либ), `POST /api/v1/auth/telegram`, `GET /api/v1/me`
+- DEV auth bypass (`{"dev": true}`, работает только при `ALLOW_DEV_AUTH=true`, физически запрещён в production через `env.ts`)
+- Security-тесты: подпись initData (валидная/поддельная/просроченная/подменённые поля/отсутствующий hash), сессия (валидная/подменённая/просроченная/битый формат)
 
 ## Этап 3 — Core UI — TODO
 
@@ -79,4 +79,4 @@
 
 ## Известные ограничения текущей среды
 
-- В песочнице нет локального Postgres/Docker — миграции (`prisma migrate dev`) не прогонялись, только `prisma validate`/`generate`. Поднимите `docker-compose.yml` и выполните миграцию перед Этапом 2 (там появится первая модель `User`).
+- В песочнице нет локального Postgres/Docker — миграции (`prisma migrate dev`) всё ещё не прогонялись, только `prisma validate`/`generate`. Модель `User` добавлена в схему на Этапе 2, но реальный `upsert` в БД не проверялся живым запросом — только логика валидации initData/сессии (юнит-тесты + curl без БД). Поднимите `docker-compose.yml` и выполните `npm run db:migrate` перед реальным использованием auth-эндпоинтов.

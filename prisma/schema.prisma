@@ -7,4 +7,17 @@ datasource db {
   provider = "postgresql"
 }
 
-// Модели домена появятся начиная с Этапа 2 (User) и Этапа 4 (Session domain).
+// Session domain (Company, Session, Vote, ...) появится на Этапе 4.
+model User {
+  id           String   @id @default(cuid())
+  telegramId   BigInt   @unique
+  firstName    String
+  lastName     String?
+  username     String?
+  photoUrl     String?
+  languageCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([username])
+}

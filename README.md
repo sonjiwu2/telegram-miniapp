@@ -32,8 +32,9 @@ cp .env.example .env
 | --- | --- | --- |
 | `DATABASE_URL` | да | Строка подключения к PostgreSQL |
 | `NEXT_PUBLIC_APP_URL` | да | Публичный URL приложения (share-ссылки, deep links) |
-| `TELEGRAM_BOT_TOKEN` | со 2 этапа | Токен Telegram-бота, используется для валидации initData |
-| `TELEGRAM_BOT_USERNAME` | со 2 этапа | Username бота (для deep links) |
+| `TELEGRAM_BOT_TOKEN` | да | Токен Telegram-бота, используется для валидации initData |
+| `TELEGRAM_BOT_USERNAME` | нет | Username бота (для deep links) |
+| `SESSION_SECRET` | да | Секрет для подписи сессионной cookie, ≥32 символов |
 | `ALLOW_DEV_AUTH` | нет | `true` включает dev-обход авторизации. Физически запрещён при `NODE_ENV=production` |
 | `DEV_TELEGRAM_USER_ID` | нет | Telegram ID, который подставляется при dev-обходе |
 | `AI_PROVIDER` / `AI_API_KEY` | с 11 этапа | Провайдер и ключ для AI-вердиктов |
@@ -95,14 +96,25 @@ go run .
    например `npx localtunnel --port 3000`.
 3. Токен и URL — только в `bot/.env` (в git не коммитится).
 
-Полноценная валидация Telegram `initData` на стороне Next.js API появится на
-Этапе 2.
+## Авторизация
+
+- `POST /api/v1/auth/telegram` — принимает `{ "initData": "..." }` (сырая строка
+  из `Telegram.WebApp.initData`), валидирует HMAC-подпись на сервере, создаёт
+  или обновляет `User`, выставляет httpOnly-сессионную cookie.
+- `GET /api/v1/me` — текущий пользователь по сессии, `401 UNAUTHENTICATED` без неё.
+- Dev-обход: `POST /api/v1/auth/telegram` с `{ "dev": true }` работает только при
+  `ALLOW_DEV_AUTH=true` (использует `DEV_TELEGRAM_USER_ID`), иначе `403 DEV_AUTH_DISABLED`.
+- Формат ошибок единый: `{ "error": { "code": "...", "message": "..." } }`.
 
 ## Безопасность
 
-- Telegram `initData` валидируется только на сервере (HMAC-подпись), фронтенду
-  не доверяем ни в чём — с Этапа 2.
+- Telegram `initData` валидируется только на сервере (HMAC-SHA256 по
+  официальному алгоритму), фронтенду не доверяем ни в чём — см.
+  `src/server/auth/telegram-init-data.ts`.
+- Сессия — подписанная httpOnly-cookie (`src/server/auth/session.ts`), секрет
+  — `SESSION_SECRET`, срок жизни 30 дней, подпись и срок годности проверяются
+  на каждый запрос.
 - `ALLOW_DEV_AUTH=true` физически заблокирован при `NODE_ENV=production`
-  (проверяется в `src/config/env.ts`).
+  (проверяется в `src/config/env.ts`, включая сборку — `next build` тоже упадёт).
 - Все случайные результаты (рулетка, выбор варианта) считаются на сервере
   криптографически стойким генератором — с Этапа 5.
