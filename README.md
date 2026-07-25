@@ -15,6 +15,7 @@
 - [Zod](https://zod.dev/) — валидация env и API-схем
 - [Vitest](https://vitest.dev/) — тесты
 - Telegram Mini Apps WebApp API (официальный `telegram-web-app.js`)
+- **Bot: [Go](https://go.dev/) 1.25**, отдельный сервис `bot/`, long polling, без внешних Telegram-SDK (свой минимальный клиент поверх Bot API)
 
 ## Установка
 
@@ -75,9 +76,27 @@ npm run build
 
 ## Telegram Bot
 
-Настройка бота и Mini App появится на Этапе 2 (Telegram auth) — здесь будет
-описан процесс регистрации бота через [@BotFather](https://t.me/BotFather) и
-настройка Mini App URL.
+Отдельный Go-сервис в `bot/` — принимает сообщения через long polling (без
+вебхука, публичный адрес самому боту не нужен) и на `/start` присылает кнопку
+с Mini App (`web_app`).
+
+```bash
+cd bot
+cp .env.example .env   # заполнить TELEGRAM_BOT_TOKEN и MINI_APP_URL
+go run .
+```
+
+Настройка:
+
+1. Зарегистрировать бота у [@BotFather](https://t.me/BotFather) → `/newbot`,
+   получить токен.
+2. `MINI_APP_URL` должен быть публичным HTTPS-адресом Next.js приложения
+   (Telegram не откроет `http://localhost`). Для локальной проверки — туннель,
+   например `npx localtunnel --port 3000`.
+3. Токен и URL — только в `bot/.env` (в git не коммитится).
+
+Полноценная валидация Telegram `initData` на стороне Next.js API появится на
+Этапе 2.
 
 ## Безопасность
 

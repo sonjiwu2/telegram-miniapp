@@ -40,3 +40,8 @@ src/generated/
 
 # Testing
 coverage/
+
+# Go
+bot/reshala-bot
+bot/reshala-bot.exe
+bot/*.exe
