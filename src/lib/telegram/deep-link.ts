@@ -18,3 +18,25 @@ export function buildMiniAppLink(publicId: string): string {
 export function buildTelegramShareLink(miniAppUrl: string, text: string): string {
   return `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl)}&text=${encodeURIComponent(text)}`;
 }
+
+// startapp — общий на всё приложение параметр, поэтому кодируем в нём тип
+// цели коротким префиксом: "s-<id>" — сессия, "c-<id>" — компания.
+export type StartParamTarget = { type: "session"; id: string } | { type: "company"; id: string };
+
+export function buildSessionStartParam(sessionId: string): string {
+  return `s-${sessionId}`;
+}
+
+export function buildCompanyStartParam(companyId: string): string {
+  return `c-${companyId}`;
+}
+
+export function parseStartParam(raw: string): StartParamTarget | null {
+  if (raw.startsWith("s-")) {
+    return { type: "session", id: raw.slice(2) };
+  }
+  if (raw.startsWith("c-")) {
+    return { type: "company", id: raw.slice(2) };
+  }
+  return null;
+}

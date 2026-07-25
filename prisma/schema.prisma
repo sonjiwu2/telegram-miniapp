@@ -20,11 +20,50 @@ model User {
 
   createdSessions Session[]            @relation("SessionCreator")
   participations  SessionParticipant[]
+  ownedCompanies  Company[]            @relation("CompanyOwner")
+  companyMembers  CompanyMember[]
 
   @@index([username])
 }
 
-// Company/CompanyMember появятся на Этапе 8.
+enum CompanyRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Company {
+  id      String  @id @default(cuid())
+  name    String
+  emoji   String?
+
+  ownerId String
+  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  members  CompanyMember[]
+  sessions Session[]
+
+  @@index([ownerId])
+}
+
+model CompanyMember {
+  id        String      @id @default(cuid())
+  companyId String
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  role      CompanyRole @default(MEMBER)
+  nickname  String?
+
+  joinedAt DateTime @default(now())
+
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+}
+
 // Vote (для голосований) появится на Этапе 9.
 
 enum SessionType {
@@ -54,7 +93,8 @@ model Session {
   creatorId String
   creator   User   @relation("SessionCreator", fields: [creatorId], references: [id])
 
-  // companyId появится на Этапе 8.
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   participants SessionParticipant[]
   options      Option[]
@@ -67,6 +107,7 @@ model Session {
 
   @@index([creatorId])
   @@index([status])
+  @@index([companyId])
 }
 
 model SessionParticipant {

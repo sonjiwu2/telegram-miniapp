@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getTelegramWebApp } from "@/lib/telegram/webapp";
-import { buildMiniAppLink, buildTelegramShareLink } from "@/lib/telegram/deep-link";
+import { buildMiniAppLink, buildSessionStartParam, buildTelegramShareLink } from "@/lib/telegram/deep-link";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
@@ -23,7 +23,7 @@ export function ShareActions({ sessionId, shareText }: { sessionId: string; shar
   async function handleShare() {
     const webApp = getTelegramWebApp();
     if (webApp) {
-      const miniAppLink = buildMiniAppLink(sessionId);
+      const miniAppLink = buildMiniAppLink(buildSessionStartParam(sessionId));
       webApp.openTelegramLink(buildTelegramShareLink(miniAppLink, shareText));
       return;
     }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getSessionByPublicId } from "@/server/sessions/session-repository";
 import { serializeSession } from "@/server/sessions/serialize-session";
 import { getWinnerLabel } from "@/lib/sessions/get-winner-label";
-import { buildMiniAppLink } from "@/lib/telegram/deep-link";
+import { buildMiniAppLink, buildSessionStartParam } from "@/lib/telegram/deep-link";
 import { SessionResultSummary } from "@/components/sessions/session-result-summary";
 
 interface Props {
@@ -55,7 +55,7 @@ export default async function PublicResultPage({ params }: Props) {
       <p className="text-2xl font-bold tracking-tight">RESHALA</p>
       <SessionResultSummary title={session.title} status={session.status} winnerLabel={winnerLabel} />
       <a
-        href={buildMiniAppLink(session.id)}
+        href={buildMiniAppLink(buildSessionStartParam(session.id))}
         className="bg-accent min-h-12 rounded-xl px-6 py-3 text-base font-semibold text-white"
       >
         Открыть в Telegram

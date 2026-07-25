@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { useAuth } from "@/components/providers/session-provider";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,7 +17,17 @@ function pickVerdictLine(): string {
 }
 
 export default function WhoTodayPage() {
+  return (
+    <Suspense fallback={null}>
+      <WhoTodayForm />
+    </Suspense>
+  );
+}
+
+function WhoTodayForm() {
   const { status } = useAuth();
+  const searchParams = useSearchParams();
+  const companyId = searchParams.get("companyId") ?? undefined;
 
   const [phase, setPhase] = useState<Phase>("setup");
   const [question, setQuestion] = useState("");
@@ -38,6 +49,22 @@ export default function WhoTodayPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!companyId || status !== "authenticated") {
+      return;
+    }
+
+    apiClient.companies
+      .get(companyId)
+      .then(({ company }) => {
+        setParticipants(company.members.map((member) => member.nickname || member.displayName));
+      })
+      .catch(() => {
+        // Не смогли подтянуть участников компании — просто оставляем список пустым,
+        // пользователь всё равно может добавить участников вручную.
+      });
+  }, [companyId, status]);
 
   function addParticipant() {
     const name = participantInput.trim();
@@ -98,6 +125,7 @@ export default function WhoTodayPage() {
       const { session: created } = await apiClient.sessions.create({
         type: "ROULETTE",
         title: question.trim(),
+        companyId,
       });
       await apiClient.sessions.addParticipants(created.id, participants);
       await apiClient.sessions.start(created.id);

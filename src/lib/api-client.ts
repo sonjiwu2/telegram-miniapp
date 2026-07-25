@@ -1,5 +1,6 @@
 import type { PublicUser } from "@/lib/types/user";
 import type { PublicSession } from "@/lib/types/session";
+import type { PublicCompany } from "@/lib/types/company";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -43,7 +44,7 @@ export const apiClient = {
     }),
   me: () => request<{ user: PublicUser }>("/api/v1/me"),
   sessions: {
-    create: (input: { type: string; title: string }) =>
+    create: (input: { type: string; title: string; companyId?: string }) =>
       request<{ session: PublicSession }>("/api/v1/sessions", {
         method: "POST",
         body: JSON.stringify(input),
@@ -63,5 +64,20 @@ export const apiClient = {
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
     finalize: (id: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/finalize`, { method: "POST" }),
+  },
+  companies: {
+    list: () => request<{ companies: PublicCompany[] }>("/api/v1/companies"),
+    create: (input: { name: string; emoji?: string }) =>
+      request<{ company: PublicCompany }>("/api/v1/companies", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    get: (id: string) => request<{ company: PublicCompany }>(`/api/v1/companies/${id}`),
+    join: (id: string) =>
+      request<{ company: PublicCompany }>(`/api/v1/companies/${id}/join`, { method: "POST" }),
+    removeMember: (id: string, userId: string) =>
+      request<{ company: PublicCompany }>(`/api/v1/companies/${id}/members/${userId}`, {
+        method: "DELETE",
+      }),
   },
 };

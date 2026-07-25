@@ -10,6 +10,7 @@ const bodySchema = z.object({
   type: z.enum(SessionType),
   title: z.string().trim().min(1).max(200),
   settings: z.record(z.string(), z.unknown()).optional(),
+  companyId: z.string().min(1).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -22,11 +23,12 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, "INVALID_BODY", "Request body is invalid");
     }
 
-    const { type, title, settings } = parsedBody.data;
+    const { type, title, settings, companyId } = parsedBody.data;
     const session = await createSession(user.id, {
       type,
       title,
       settings: settings as Prisma.InputJsonObject | undefined,
+      companyId,
     });
     return NextResponse.json({ session: serializeSession(session) }, { status: 201 });
   });

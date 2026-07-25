@@ -14,15 +14,26 @@ export interface CreateSessionInput {
   type: SessionType;
   title: string;
   settings?: Prisma.InputJsonObject;
+  companyId?: string;
 }
 
-export function createSession(creatorId: string, input: CreateSessionInput) {
+export async function createSession(creatorId: string, input: CreateSessionInput) {
+  if (input.companyId) {
+    const membership = await prisma.companyMember.findUnique({
+      where: { companyId_userId: { companyId: input.companyId, userId: creatorId } },
+    });
+    if (!membership) {
+      throw new ApiError(403, "NOT_A_COMPANY_MEMBER", "You must be a member of this company");
+    }
+  }
+
   return prisma.session.create({
     data: {
       type: input.type,
       title: input.title,
       settings: input.settings ?? {},
       creatorId,
+      companyId: input.companyId,
     },
     include: sessionWithRelations,
   });
