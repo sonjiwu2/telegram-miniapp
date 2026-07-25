@@ -11,9 +11,10 @@ interface AuthState {
   status: AuthStatus;
   user: PublicUser | null;
   error: string | null;
+  retry: () => void;
 }
 
-const initialState: AuthState = { status: "loading", user: null, error: null };
+const initialState: AuthState = { status: "loading", user: null, error: null, retry: () => {} };
 
 const AuthContext = createContext<AuthState>(initialState);
 
@@ -22,12 +23,15 @@ export function useAuth(): AuthState {
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>(initialState);
+  const [state, setState] = useState<Omit<AuthState, "retry">>({ status: "loading", user: null, error: null });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     async function authenticate() {
+      setState({ status: "loading", user: null, error: null });
+
       const initData = getTelegramWebApp()?.initData;
 
       try {
@@ -64,7 +68,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  const retry = () => setAttempt((prev) => prev + 1);
+
+  return <AuthContext.Provider value={{ ...state, retry }}>{children}</AuthContext.Provider>;
 }

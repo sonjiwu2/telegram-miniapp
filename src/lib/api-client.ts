@@ -51,15 +51,21 @@ async function request<T>(path: string, init?: RequestInit & { timeoutMs?: numbe
 }
 
 export const apiClient = {
+  // Таймаут обязателен именно здесь: это самый первый запрос при открытии
+  // приложения, до него нет ни одного экрана-фолбэка. Без него зависшая сеть
+  // (например, нестабильный dev-туннель) оставляла бы пользователя перед
+  // вечным спиннером без единого шанса на восстановление.
   authWithTelegram: (initData: string) =>
     request<{ user: PublicUser }>("/api/v1/auth/telegram", {
       method: "POST",
       body: JSON.stringify({ initData }),
+      timeoutMs: 15_000,
     }),
   authWithDevBypass: () =>
     request<{ user: PublicUser }>("/api/v1/auth/telegram", {
       method: "POST",
       body: JSON.stringify({ dev: true }),
+      timeoutMs: 15_000,
     }),
   me: () => request<{ user: PublicUser }>("/api/v1/me"),
   sessions: {

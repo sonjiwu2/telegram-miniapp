@@ -9,7 +9,7 @@ import type { UserStats } from "@/lib/types/stats";
 import type { Achievement } from "@/lib/achievements/evaluate";
 
 export default function ProfilePage() {
-  const { status, user, error } = useAuth();
+  const { status, user, error, retry } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [achievements, setAchievements] = useState<Achievement[] | null>(null);
 
@@ -124,7 +124,12 @@ export default function ProfilePage() {
       )}
 
       {status === "error" && (
-        <EmptyState title="Что-то сломалось" description={error ?? "Не удалось загрузить профиль."} />
+        <EmptyState
+          title="Что-то сломалось"
+          description={error ?? "Не удалось загрузить профиль."}
+          actionLabel="Повторить"
+          onAction={retry}
+        />
       )}
     </main>
   );
