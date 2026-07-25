@@ -19,9 +19,11 @@ const envSchema = z
       .transform((value) => value === "true"),
     DEV_TELEGRAM_USER_ID: z.string().optional(),
 
-    // Появятся начиная с Этапа 11 (AI verdict).
+    // AI verdict (Этап 11). Опциональны — режим просто недоступен, пока не
+    // настроены (503 AI_NOT_CONFIGURED), остальное приложение не требует AI.
     AI_PROVIDER: z.string().optional(),
     AI_API_KEY: z.string().optional(),
+    AI_MODEL: z.string().optional(),
   })
   .refine((data) => !(data.NODE_ENV === "production" && data.ALLOW_DEV_AUTH), {
     message: "ALLOW_DEV_AUTH must not be true when NODE_ENV=production",

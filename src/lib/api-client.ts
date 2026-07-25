@@ -14,12 +14,29 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
+async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  const { timeoutMs, ...requestInit } = init ?? {};
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...requestInit,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...requestInit.headers },
+      signal: controller?.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiRequestError(408, "REQUEST_TIMEOUT", "Request timed out");
+    }
+    throw error;
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 
   const json = await response.json().catch(() => null);
 
@@ -45,7 +62,12 @@ export const apiClient = {
     }),
   me: () => request<{ user: PublicUser }>("/api/v1/me"),
   sessions: {
-    create: (input: { type: string; title: string; companyId?: string }) =>
+    create: (input: {
+      type: string;
+      title: string;
+      companyId?: string;
+      settings?: Record<string, unknown>;
+    }) =>
       request<{ session: PublicSession }>("/api/v1/sessions", {
         method: "POST",
         body: JSON.stringify(input),
@@ -63,8 +85,11 @@ export const apiClient = {
       }),
     start: (id: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
-    finalize: (id: string) =>
-      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/finalize`, { method: "POST" }),
+    finalize: (id: string, options?: { timeoutMs?: number }) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/finalize`, {
+        method: "POST",
+        timeoutMs: options?.timeoutMs,
+      }),
     vote: (id: string, optionId: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/vote`, {
         method: "POST",

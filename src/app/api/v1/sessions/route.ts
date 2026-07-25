@@ -8,7 +8,9 @@ import { ApiError, withApiErrors } from "@/server/http/errors";
 
 const bodySchema = z.object({
   type: z.enum(SessionType),
-  title: z.string().trim().min(1).max(200),
+  // 200 хватает для вопросов рулетки/опроса; AI Вердикт использует это же поле
+  // под свободный текст ситуации (раздел 14 ТЗ), отсюда более щедрый лимит.
+  title: z.string().trim().min(1).max(2000),
   settings: z.record(z.string(), z.unknown()).optional(),
   companyId: z.string().min(1).optional(),
 });

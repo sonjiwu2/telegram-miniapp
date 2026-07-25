@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient, ApiRequestError } from "@/lib/api-client";
 import { getWinnerLabel } from "@/lib/sessions/get-winner-label";
+import { getVerdict } from "@/lib/ai/get-verdict";
 import { SessionResultSummary } from "@/components/sessions/session-result-summary";
+import { VerdictSummary } from "@/components/ai/verdict-summary";
 import { PollView } from "@/components/sessions/poll-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -76,6 +78,17 @@ export function SharedSessionView({ id }: { id: string }) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center">
         <PollView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
+      </main>
+    );
+  }
+
+  if (session.type === "AI_VERDICT") {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+        <VerdictSummary title={session.title} verdict={getVerdict(session)} />
+        <Link href="/" className="bg-accent min-h-12 rounded-xl px-6 py-3 text-base font-semibold text-white">
+          Создать своё решение
+        </Link>
       </main>
     );
   }

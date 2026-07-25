@@ -6,6 +6,8 @@ import { canManageSession } from "./permissions";
 import { resolveRoulette } from "./resolvers/roulette";
 import { resolveRandomChoice } from "./resolvers/random-choice";
 import { resolvePoll } from "./resolvers/poll";
+import { resolveAiVerdict } from "./resolvers/ai-verdict";
+import { isAiTone, DEFAULT_AI_TONE } from "@/lib/ai/tones";
 import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
@@ -201,9 +203,11 @@ export function castVote(publicId: string, userId: string, optionId: string) {
 type SessionForFinalize = Prisma.SessionGetPayload<{ include: typeof sessionWithRelations }>;
 
 interface Resolution {
-  candidateCount: number;
-  notEnoughCode: string;
-  notEnoughMessage: string;
+  // Отсутствует у режимов без "кандидатов" (например, AI Вердикт) — тогда
+  // проверка "минимум 2" просто пропускается.
+  candidateCount?: number;
+  notEnoughCode?: string;
+  notEnoughMessage?: string;
   resolve: () => ResolvedResult | Promise<ResolvedResult>;
 }
 
@@ -226,6 +230,13 @@ const RESOLUTIONS: Partial<Record<SessionType, (session: SessionForFinalize) => 
     notEnoughMessage: "Need at least 2 options to finalize",
     resolve: () => resolvePoll(session.id, session.options),
   }),
+  AI_VERDICT: (session) => {
+    const settings = session.settings as { tone?: unknown } | null;
+    const tone = isAiTone(settings?.tone) ? settings.tone : DEFAULT_AI_TONE;
+    return {
+      resolve: () => resolveAiVerdict(session.creatorId, session.title, tone),
+    };
+  },
 };
 
 // Финализация — авторитетный, идемпотентный шаг: результат вычисляется и
@@ -255,8 +266,8 @@ export async function finalizeSession(publicId: string, userId: string) {
   }
 
   const resolution = buildResolution(session);
-  if (resolution.candidateCount < 2) {
-    throw new ApiError(409, resolution.notEnoughCode, resolution.notEnoughMessage);
+  if (resolution.candidateCount !== undefined && resolution.candidateCount < 2) {
+    throw new ApiError(409, resolution.notEnoughCode!, resolution.notEnoughMessage!);
   }
 
   const resolved = await resolution.resolve();

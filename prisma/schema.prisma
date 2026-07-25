@@ -23,6 +23,7 @@ model User {
   ownedCompanies  Company[]            @relation("CompanyOwner")
   companyMembers  CompanyMember[]
   votes           Vote[]
+  aiRequests      AIRequest[]
 
   @@index([username])
 }
@@ -177,4 +178,26 @@ model Result {
   payload Json @default("{}")
 
   createdAt DateTime @default(now())
+}
+
+enum AIRequestStatus {
+  SUCCESS
+  REFUSED
+  ERROR
+}
+
+// Аудит обращений к AI-провайдеру (раздел 49 ТЗ) — без содержимого промпта,
+// только метаданные. Используется и для дневного лимита бесплатных вердиктов.
+model AIRequest {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  provider  String
+  model     String
+  status    AIRequestStatus
+  latencyMs Int
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
