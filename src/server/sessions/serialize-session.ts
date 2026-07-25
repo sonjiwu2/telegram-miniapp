@@ -1,8 +1,9 @@
-import type { Session, SessionParticipant, Result } from "@/generated/prisma/client";
+import type { Session, SessionParticipant, Option, Result } from "@/generated/prisma/client";
 import type { PublicSession } from "@/lib/types/session";
 
 type SessionWithRelations = Session & {
   participants: SessionParticipant[];
+  options: Option[];
   result: Result | null;
 };
 
@@ -20,9 +21,14 @@ export function serializeSession(session: SessionWithRelations): PublicSession {
       userId: participant.userId,
       displayName: participant.displayName,
     })),
+    options: session.options.map((option) => ({
+      id: option.id,
+      label: option.label,
+    })),
     result: session.result
       ? {
           winnerParticipantId: session.result.winnerParticipantId,
+          winnerOptionId: session.result.winnerOptionId,
           payload: session.result.payload,
           createdAt: session.result.createdAt.toISOString(),
         }

@@ -4,9 +4,11 @@ import { Prisma, type SessionType } from "@/generated/prisma/client";
 import { canEditBeforeStart, canJoin, canStart } from "./state-machine";
 import { canManageSession } from "./permissions";
 import { resolveRoulette } from "./resolvers/roulette";
+import { resolveRandomChoice } from "./resolvers/random-choice";
+import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
-const sessionWithRelations = { participants: true, result: true } as const;
+const sessionWithRelations = { participants: true, options: true, result: true } as const;
 
 export interface CreateSessionInput {
   type: SessionType;
@@ -84,9 +86,9 @@ export function startSession(publicId: string, userId: string) {
   });
 }
 
-// Ручное добавление участников создателем сессии — используется режимами
-// вроде «Кто сегодня», где список людей вводится вручную и не обязан
-// совпадать с зарегистрированными пользователями Telegram (userId = null).
+// Ручное добавление участников создателем сессии — используется режимом
+// «Кто сегодня», где список людей вводится вручную и не обязан совпадать
+// с зарегистрированными пользователями Telegram (userId = null).
 export function addParticipants(publicId: string, userId: string, displayNames: string[]) {
   return prisma.$transaction(async (tx) => {
     const session = await tx.session.findUnique({ where: { publicId } });
@@ -96,6 +98,10 @@ export function addParticipants(publicId: string, userId: string, displayNames: 
 
     if (!canManageSession(session, userId)) {
       throw new ApiError(403, "SESSION_FORBIDDEN", "Only the creator can edit participants");
+    }
+
+    if (session.type !== "ROULETTE") {
+      throw new ApiError(409, "WRONG_SESSION_TYPE", "Participants can only be added to ROULETTE sessions");
     }
 
     if (!canEditBeforeStart(session.status)) {
@@ -113,8 +119,60 @@ export function addParticipants(publicId: string, userId: string, displayNames: 
   });
 }
 
-const RESOLVERS: Partial<Record<SessionType, (participants: { id: string; displayName: string }[]) => ReturnType<typeof resolveRoulette>>> = {
-  ROULETTE: resolveRoulette,
+// Ручное добавление вариантов создателем сессии — используется режимом
+// «Нам похуй»: варианты — это пункты списка, а не люди.
+export function addOptions(publicId: string, userId: string, labels: string[]) {
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.session.findUnique({ where: { publicId } });
+    if (!session) {
+      throw new ApiError(404, "SESSION_NOT_FOUND", "Session not found");
+    }
+
+    if (!canManageSession(session, userId)) {
+      throw new ApiError(403, "SESSION_FORBIDDEN", "Only the creator can edit options");
+    }
+
+    if (session.type !== "RANDOM_CHOICE") {
+      throw new ApiError(409, "WRONG_SESSION_TYPE", "Options can only be added to RANDOM_CHOICE sessions");
+    }
+
+    if (!canEditBeforeStart(session.status)) {
+      throw new ApiError(409, "SESSION_ALREADY_STARTED", `Cannot edit options in status ${session.status}`);
+    }
+
+    await tx.option.createMany({
+      data: labels.map((label) => ({ sessionId: session.id, label })),
+    });
+
+    return tx.session.findUniqueOrThrow({
+      where: { id: session.id },
+      include: sessionWithRelations,
+    });
+  });
+}
+
+type SessionForFinalize = Prisma.SessionGetPayload<{ include: typeof sessionWithRelations }>;
+
+interface Resolution {
+  candidateCount: number;
+  notEnoughCode: string;
+  notEnoughMessage: string;
+  resolve: () => ResolvedResult;
+}
+
+const RESOLUTIONS: Partial<Record<SessionType, (session: SessionForFinalize) => Resolution>> = {
+  ROULETTE: (session) => ({
+    candidateCount: session.participants.length,
+    notEnoughCode: "NOT_ENOUGH_PARTICIPANTS",
+    notEnoughMessage: "Need at least 2 participants to finalize",
+    resolve: () => resolveRoulette(session.participants),
+  }),
+  RANDOM_CHOICE: (session) => ({
+    candidateCount: session.options.length,
+    notEnoughCode: "NOT_ENOUGH_OPTIONS",
+    notEnoughMessage: "Need at least 2 options to finalize",
+    resolve: () => resolveRandomChoice(session.options),
+  }),
 };
 
 // Финализация — авторитетный, идемпотентный шаг: результат вычисляется и
@@ -138,22 +196,24 @@ export async function finalizeSession(publicId: string, userId: string) {
     throw new ApiError(409, "SESSION_NOT_OPEN", `Cannot finalize a session in status ${session.status}`);
   }
 
-  if (session.participants.length < 2) {
-    throw new ApiError(409, "NOT_ENOUGH_PARTICIPANTS", "Need at least 2 participants to finalize");
-  }
-
-  const resolver = RESOLVERS[session.type];
-  if (!resolver) {
+  const buildResolution = RESOLUTIONS[session.type];
+  if (!buildResolution) {
     throw new ApiError(501, "FINALIZE_NOT_IMPLEMENTED", `Finalize is not implemented for session type ${session.type}`);
   }
 
-  const resolved = resolver(session.participants);
+  const resolution = buildResolution(session);
+  if (resolution.candidateCount < 2) {
+    throw new ApiError(409, resolution.notEnoughCode, resolution.notEnoughMessage);
+  }
+
+  const resolved = resolution.resolve();
 
   try {
     await prisma.result.create({
       data: {
         sessionId: session.id,
         winnerParticipantId: resolved.winnerParticipantId,
+        winnerOptionId: resolved.winnerOptionId,
         payload: resolved.payload,
       },
     });

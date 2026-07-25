@@ -1,10 +1,5 @@
 import { randomInt } from "node:crypto";
-import type { Prisma } from "@/generated/prisma/client";
-
-export interface ResolvedResult {
-  winnerParticipantId: string;
-  payload: Prisma.InputJsonObject;
-}
+import type { ResolvedResult } from "./types";
 
 export interface RouletteParticipant {
   id: string;

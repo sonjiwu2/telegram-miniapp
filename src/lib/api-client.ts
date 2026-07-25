@@ -53,6 +53,11 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({ displayNames }),
       }),
+    addOptions: (id: string, labels: string[]) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/options`, {
+        method: "POST",
+        body: JSON.stringify({ labels }),
+      }),
     start: (id: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
     finalize: (id: string) =>

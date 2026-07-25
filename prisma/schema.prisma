@@ -25,7 +25,7 @@ model User {
 }
 
 // Company/CompanyMember появятся на Этапе 8.
-// Option/Vote (для "Нам похуй" и голосований) появятся на Этапах 6 и 9.
+// Vote (для голосований) появится на Этапе 9.
 
 enum SessionType {
   ROULETTE
@@ -57,6 +57,7 @@ model Session {
   // companyId появится на Этапе 8.
 
   participants SessionParticipant[]
+  options      Option[]
   result       Result?
 
   createdAt DateTime  @default(now())
@@ -85,6 +86,20 @@ model SessionParticipant {
   @@index([sessionId])
 }
 
+// Вариант выбора для "Нам похуй" (RANDOM_CHOICE) — не человек, а пункт списка.
+model Option {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  label     String
+
+  createdAt DateTime @default(now())
+
+  wonResults Result[] @relation("ResultWinnerOption")
+
+  @@index([sessionId])
+}
+
 model Result {
   id        String   @id @default(cuid())
   sessionId String   @unique
@@ -92,6 +107,9 @@ model Result {
 
   winnerParticipantId String?
   winnerParticipant   SessionParticipant? @relation("ResultWinner", fields: [winnerParticipantId], references: [id])
+
+  winnerOptionId String?
+  winnerOption   Option? @relation("ResultWinnerOption", fields: [winnerOptionId], references: [id])
 
   // Динамические данные конкретного режима (например, полный текст AI-вердикта).
   payload Json @default("{}")

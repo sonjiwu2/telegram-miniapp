@@ -4,8 +4,14 @@ export interface PublicSessionParticipant {
   displayName: string;
 }
 
+export interface PublicSessionOption {
+  id: string;
+  label: string;
+}
+
 export interface PublicResult {
   winnerParticipantId: string | null;
+  winnerOptionId: string | null;
   payload: unknown;
   createdAt: string;
 }
@@ -18,6 +24,7 @@ export interface PublicSession {
   settings: unknown;
   creatorId: string;
   participants: PublicSessionParticipant[];
+  options: PublicSessionOption[];
   result: PublicResult | null;
   createdAt: string;
   startedAt: string | null;

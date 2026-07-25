@@ -21,7 +21,7 @@ describe("resolveRoulette", () => {
 
     const result = resolveRoulette(participants);
 
-    expect(result.winnerParticipantId).toBe(participants[0]!.id);
+    expect(result.winnerParticipantId!).toBe(participants[0]!.id);
     expect(result.payload).toEqual({ winnerDisplayName: participants[0]!.displayName });
   });
 
@@ -31,7 +31,7 @@ describe("resolveRoulette", () => {
 
     for (let i = 0; i < 500; i++) {
       const result = resolveRoulette(participants);
-      expect(validIds.has(result.winnerParticipantId)).toBe(true);
+      expect(validIds.has(result.winnerParticipantId!)).toBe(true);
     }
   });
 
@@ -40,7 +40,7 @@ describe("resolveRoulette", () => {
     const seen = new Set<string>();
 
     for (let i = 0; i < 500; i++) {
-      seen.add(resolveRoulette(participants).winnerParticipantId);
+      seen.add(resolveRoulette(participants).winnerParticipantId!);
     }
 
     expect(seen.size).toBe(participants.length);
