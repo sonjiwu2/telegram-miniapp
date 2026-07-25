@@ -37,7 +37,7 @@ describe("getWinnerLabel", () => {
   it("returns the option's label for a random-choice result", () => {
     const session = baseSession({
       type: "RANDOM_CHOICE",
-      options: [{ id: "o1", label: "Хинкали" }],
+      options: [{ id: "o1", label: "Хинкали", argument: null }],
       result: { winnerParticipantId: null, winnerOptionId: "o1", payload: {}, createdAt: "" },
     });
 

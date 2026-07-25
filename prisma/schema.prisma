@@ -149,11 +149,14 @@ model SessionParticipant {
 }
 
 // Вариант выбора для "Нам похуй" (RANDOM_CHOICE) — не человек, а пункт списка.
+// Для DEBATE переиспользуется как "сторона": label — имя стороны, argument —
+// её аргумент. Для остальных типов сессий argument всегда null.
 model Option {
   id        String  @id @default(cuid())
   sessionId String
   session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   label     String
+  argument  String?
 
   createdAt DateTime @default(now())
 

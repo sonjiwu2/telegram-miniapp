@@ -7,7 +7,9 @@ import { resolveRoulette } from "./resolvers/roulette";
 import { resolveRandomChoice } from "./resolvers/random-choice";
 import { resolvePoll } from "./resolvers/poll";
 import { resolveAiVerdict } from "./resolvers/ai-verdict";
+import { resolveDebateVote, resolveDebateJudge } from "./resolvers/debate";
 import { isAiTone, DEFAULT_AI_TONE } from "@/lib/ai/tones";
+import { readDebateSettings, computeDebateClosesAt } from "@/lib/sessions/debate-settings";
 import type { ResolvedResult } from "./resolvers/types";
 import { ApiError } from "@/server/http/errors";
 
@@ -133,9 +135,10 @@ export function addParticipants(publicId: string, userId: string, displayNames: 
   });
 }
 
-// Ручное добавление вариантов создателем сессии — используется режимом
-// «Нам похуй»: варианты — это пункты списка, а не люди.
-export function addOptions(publicId: string, userId: string, labels: string[]) {
+// Ручное добавление вариантов создателем сессии — используется режимами
+// «Нам похуй» (RANDOM_CHOICE, arguments не передаются) и «Спор» (DEBATE,
+// каждой стороне соответствует аргумент по тому же индексу, максимум 6 сторон).
+export function addOptions(publicId: string, userId: string, labels: string[], argumentsList?: string[]) {
   return prisma.$transaction(async (tx) => {
     const session = await tx.session.findUnique({ where: { publicId } });
     if (!session) {
@@ -146,16 +149,29 @@ export function addOptions(publicId: string, userId: string, labels: string[]) {
       throw new ApiError(403, "SESSION_FORBIDDEN", "Only the creator can edit options");
     }
 
-    if (session.type !== "RANDOM_CHOICE") {
-      throw new ApiError(409, "WRONG_SESSION_TYPE", "Options can only be added to RANDOM_CHOICE sessions");
+    if (session.type !== "RANDOM_CHOICE" && session.type !== "DEBATE") {
+      throw new ApiError(409, "WRONG_SESSION_TYPE", "Options can only be added to RANDOM_CHOICE or DEBATE sessions");
     }
 
     if (!canEditBeforeStart(session.status)) {
       throw new ApiError(409, "SESSION_ALREADY_STARTED", `Cannot edit options in status ${session.status}`);
     }
 
+    if (session.type === "DEBATE") {
+      if (!argumentsList || argumentsList.length !== labels.length) {
+        throw new ApiError(400, "INVALID_BODY", "Every debate side needs a name and an argument");
+      }
+      if (labels.length > 6) {
+        throw new ApiError(400, "TOO_MANY_SIDES", "A debate can have at most 6 sides");
+      }
+    }
+
     await tx.option.createMany({
-      data: labels.map((label) => ({ sessionId: session.id, label })),
+      data: labels.map((label, index) => ({
+        sessionId: session.id,
+        label,
+        argument: session.type === "DEBATE" ? argumentsList![index] : undefined,
+      })),
     });
 
     return tx.session.findUniqueOrThrow({
@@ -175,12 +191,20 @@ export function castVote(publicId: string, userId: string, optionId: string) {
       throw new ApiError(404, "SESSION_NOT_FOUND", "Session not found");
     }
 
-    if (session.type !== "POLL") {
-      throw new ApiError(409, "WRONG_SESSION_TYPE", "Voting is only available for POLL sessions");
+    if (session.type !== "POLL" && session.type !== "DEBATE") {
+      throw new ApiError(409, "WRONG_SESSION_TYPE", "Voting is only available for POLL or DEBATE sessions");
     }
 
     if (session.status !== "OPEN") {
       throw new ApiError(409, "SESSION_NOT_OPEN", `Cannot vote in a session with status ${session.status}`);
+    }
+
+    if (session.type === "DEBATE") {
+      const { durationMinutes } = readDebateSettings(session.settings);
+      const closesAt = computeDebateClosesAt(session.startedAt, durationMinutes);
+      if (closesAt && closesAt.getTime() <= Date.now()) {
+        throw new ApiError(409, "DEBATE_CLOSED", "Voting time for this debate has run out");
+      }
     }
 
     if (!session.options.some((option) => option.id === optionId)) {
@@ -235,6 +259,19 @@ const RESOLUTIONS: Partial<Record<SessionType, (session: SessionForFinalize) => 
     const tone = isAiTone(settings?.tone) ? settings.tone : DEFAULT_AI_TONE;
     return {
       resolve: () => resolveAiVerdict(session.creatorId, session.title, tone),
+    };
+  },
+  DEBATE: (session) => {
+    const debateSettings = readDebateSettings(session.settings);
+    const tone = isAiTone(debateSettings.tone) ? debateSettings.tone : DEFAULT_AI_TONE;
+    return {
+      candidateCount: session.options.length,
+      notEnoughCode: "NOT_ENOUGH_SIDES",
+      notEnoughMessage: "Need at least 2 sides to finalize",
+      resolve: () =>
+        debateSettings.judge === "ai"
+          ? resolveDebateJudge(session, tone)
+          : resolveDebateVote(session.id, session.options),
     };
   },
 };

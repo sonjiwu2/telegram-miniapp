@@ -12,8 +12,8 @@ function baseSession(overrides: Partial<PublicSession> = {}): PublicSession {
     creatorId: "user-1",
     participants: [],
     options: [
-      { id: "a", label: "Комедию" },
-      { id: "b", label: "Ужасы" },
+      { id: "a", label: "Комедию", argument: null },
+      { id: "b", label: "Ужасы", argument: null },
     ],
     result: null,
     createdAt: new Date().toISOString(),

@@ -24,6 +24,7 @@ export function serializeSession(session: SessionWithRelations): PublicSession {
     options: session.options.map((option) => ({
       id: option.id,
       label: option.label,
+      argument: option.argument,
     })),
     result: session.result
       ? {

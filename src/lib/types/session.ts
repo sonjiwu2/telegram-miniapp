@@ -7,6 +7,7 @@ export interface PublicSessionParticipant {
 export interface PublicSessionOption {
   id: string;
   label: string;
+  argument: string | null;
 }
 
 export interface PublicResult {

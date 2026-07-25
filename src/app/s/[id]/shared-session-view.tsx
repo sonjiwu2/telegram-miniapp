@@ -8,6 +8,7 @@ import { getVerdict } from "@/lib/ai/get-verdict";
 import { SessionResultSummary } from "@/components/sessions/session-result-summary";
 import { VerdictSummary } from "@/components/ai/verdict-summary";
 import { PollView } from "@/components/sessions/poll-view";
+import { DebateView } from "@/components/sessions/debate-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PublicSession } from "@/lib/types/session";
@@ -78,6 +79,14 @@ export function SharedSessionView({ id }: { id: string }) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center">
         <PollView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
+      </main>
+    );
+  }
+
+  if (session.type === "DEBATE") {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center">
+        <DebateView session={session} onUpdate={(updated) => setState({ status: "loaded", session: updated })} />
       </main>
     );
   }

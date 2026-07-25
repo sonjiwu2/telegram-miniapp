@@ -78,10 +78,10 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({ displayNames }),
       }),
-    addOptions: (id: string, labels: string[]) =>
+    addOptions: (id: string, labels: string[], argumentsList?: string[]) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/options`, {
         method: "POST",
-        body: JSON.stringify({ labels }),
+        body: JSON.stringify({ labels, arguments: argumentsList }),
       }),
     start: (id: string) =>
       request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
