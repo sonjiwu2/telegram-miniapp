@@ -1,4 +1,5 @@
 import type { PublicUser } from "@/lib/types/user";
+import type { PublicSession } from "@/lib/types/session";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -41,4 +42,20 @@ export const apiClient = {
       body: JSON.stringify({ dev: true }),
     }),
   me: () => request<{ user: PublicUser }>("/api/v1/me"),
+  sessions: {
+    create: (input: { type: string; title: string }) =>
+      request<{ session: PublicSession }>("/api/v1/sessions", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    addParticipants: (id: string, displayNames: string[]) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/participants`, {
+        method: "POST",
+        body: JSON.stringify({ displayNames }),
+      }),
+    start: (id: string) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/start`, { method: "POST" }),
+    finalize: (id: string) =>
+      request<{ session: PublicSession }>(`/api/v1/sessions/${id}/finalize`, { method: "POST" }),
+  },
 };
